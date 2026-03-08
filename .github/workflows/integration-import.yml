@@ -1,0 +1,262 @@
+name: Integration Import
+
+# Manually triggered workflow.
+# Given a public termux repo URL, it:
+#   1. Creates an integration/<repo-name> branch
+#   2. Fetches the repo content into a subdirectory
+#   3. Runs the duplicate checker against master
+#   4. Opens a draft PR for human review
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo_url:
+        description: "Source repo URL (e.g. https://github.com/termux/termux-tools)"
+        required: true
+        type: string
+      target_dir:
+        description: "Subdirectory to place files in (leave blank to use repo name)"
+        required: false
+        type: string
+        default: ""
+      repo_ref:
+        description: "Branch / tag / SHA to import from source repo (default: main)"
+        required: false
+        type: string
+        default: "main"
+      draft_pr:
+        description: "Open a draft PR after import?"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  import:
+    name: Import ${{ inputs.repo_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------------------------------
+      # Setup
+      # ----------------------------------------------------------------
+      - name: Checkout visionary_termux (master)
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # ----------------------------------------------------------------
+      # Derive names
+      # ----------------------------------------------------------------
+      - name: Derive repo name and branch name
+        id: names
+        run: |
+          REPO_URL="${{ inputs.repo_url }}"
+          # Strip trailing slash and .git suffix
+          REPO_URL="${REPO_URL%/}"
+          REPO_URL="${REPO_URL%.git}"
+          REPO_NAME="${REPO_URL##*/}"
+          # Sanitise: lowercase, replace non-alphanumeric with dash
+          REPO_NAME_SAFE=$(echo "$REPO_NAME" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-' | sed 's/-$//')
+
+          TARGET_DIR="${{ inputs.target_dir }}"
+          if [ -z "$TARGET_DIR" ]; then
+            TARGET_DIR="$REPO_NAME_SAFE"
+          fi
+
+          BRANCH="integration/${REPO_NAME_SAFE}"
+
+          echo "repo_name=$REPO_NAME"            >> "$GITHUB_OUTPUT"
+          echo "repo_name_safe=$REPO_NAME_SAFE"  >> "$GITHUB_OUTPUT"
+          echo "target_dir=$TARGET_DIR"          >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH"                  >> "$GITHUB_OUTPUT"
+
+          echo "Source repo : $REPO_NAME"
+          echo "Target dir  : $TARGET_DIR"
+          echo "New branch  : $BRANCH"
+
+      # ----------------------------------------------------------------
+      # Create / reset the integration branch
+      # ----------------------------------------------------------------
+      - name: Create integration branch from master
+        run: |
+          BRANCH="${{ steps.names.outputs.branch }}"
+          if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null 2>&1; then
+            echo "Branch $BRANCH already exists — checking it out"
+            git checkout "$BRANCH"
+            git pull origin "$BRANCH"
+          else
+            echo "Creating new branch $BRANCH"
+            git checkout -b "$BRANCH"
+          fi
+
+      # ----------------------------------------------------------------
+      # Fetch source repo
+      # ----------------------------------------------------------------
+      - name: Clone source repository (shallow)
+        run: |
+          git clone --depth 1 \
+            --branch "${{ inputs.repo_ref }}" \
+            "${{ inputs.repo_url }}" \
+            /tmp/source_repo 2>/dev/null || \
+          git clone --depth 1 \
+            "${{ inputs.repo_url }}" \
+            /tmp/source_repo
+
+      - name: Capture source commit info
+        id: source_info
+        run: |
+          cd /tmp/source_repo
+          SHA=$(git rev-parse HEAD)
+          DATE=$(git log -1 --format='%ci')
+          echo "sha=$SHA"   >> "$GITHUB_OUTPUT"
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          echo "Source SHA  : $SHA"
+          echo "Source date : $DATE"
+
+      # ----------------------------------------------------------------
+      # Copy files into integration directory
+      # ----------------------------------------------------------------
+      - name: Copy source files (excluding .git)
+        run: |
+          TARGET="${{ steps.names.outputs.target_dir }}"
+          mkdir -p "$TARGET"
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            /tmp/source_repo/ "$TARGET/"
+
+      # ----------------------------------------------------------------
+      # Detect duplicates before committing
+      # ----------------------------------------------------------------
+      - name: Run duplicate checker
+        id: dupes
+        run: |
+          bash .github/scripts/check-duplicates.sh \
+            --base master \
+            --head HEAD \
+            --include-untracked \
+            --output /tmp/duplicates.txt || true
+          echo "=== Duplicate Report ==="
+          cat /tmp/duplicates.txt || echo "(none)"
+          {
+            echo "report<<EOF"
+            cat /tmp/duplicates.txt || echo "No duplicates found."
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # ----------------------------------------------------------------
+      # Write an IMPORT_NOTES file so reviewers have context
+      # ----------------------------------------------------------------
+      - name: Write IMPORT_NOTES.md
+        run: |
+          TARGET="${{ steps.names.outputs.target_dir }}"
+          cat > "$TARGET/IMPORT_NOTES.md" <<NOTES
+          # Import Notes — ${{ steps.names.outputs.repo_name }}
+
+          | Field | Value |
+          |---|---|
+          | Source repo | ${{ inputs.repo_url }} |
+          | Source ref | ${{ inputs.repo_ref }} |
+          | Source SHA | ${{ steps.source_info.outputs.sha }} |
+          | Import date | $(date -u '+%Y-%m-%d %H:%M UTC') |
+          | Target directory | $TARGET |
+
+          ## Duplicate Report
+
+          \`\`\`
+          ${{ steps.dupes.outputs.report }}
+          \`\`\`
+
+          ## Next Steps for Reviewer
+
+          1. Review files in \`$TARGET/\` — remove or merge true duplicates
+          2. Check the license in \`$TARGET/LICENSE\` (if present) for attribution requirements
+          3. Delete this \`IMPORT_NOTES.md\` once review is complete (or keep for history)
+          4. Approve and merge via PR
+          NOTES
+
+      # ----------------------------------------------------------------
+      # Commit everything
+      # ----------------------------------------------------------------
+      - name: Commit imported files
+        run: |
+          git add .
+          git diff --cached --quiet && echo "Nothing to commit." && exit 0
+          git commit -m "integration: import ${{ steps.names.outputs.repo_name }} @ ${{ steps.source_info.outputs.sha }}
+
+          Source: ${{ inputs.repo_url }}
+          Ref: ${{ inputs.repo_ref }}
+          SHA: ${{ steps.source_info.outputs.sha }}
+          Target dir: ${{ steps.names.outputs.target_dir }}"
+
+      - name: Push integration branch
+        run: |
+          git push -u origin "${{ steps.names.outputs.branch }}"
+
+      # ----------------------------------------------------------------
+      # Open draft PR (optional)
+      # ----------------------------------------------------------------
+      - name: Open draft PR
+        if: inputs.draft_pr == true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const dupeReport = `${{ steps.dupes.outputs.report }}`;
+            const hasDupes = dupeReport.trim() && !dupeReport.includes('No duplicates found');
+
+            const body = [
+              `## Source Repository`,
+              ``,
+              `**Repo URL / Name:** ${{ inputs.repo_url }}`,
+              `**Integration branch:** ${{ steps.names.outputs.branch }}`,
+              `**Source SHA:** ${{ steps.source_info.outputs.sha }}`,
+              `**Source date:** ${{ steps.source_info.outputs.date }}`,
+              ``,
+              `---`,
+              ``,
+              `## What This PR Adds`,
+              ``,
+              `Auto-imported content from [${{ steps.names.outputs.repo_name }}](${{ inputs.repo_url }}) ` +
+              `into \`${{ steps.names.outputs.target_dir }}/\`.`,
+              ``,
+              `---`,
+              ``,
+              `## Duplicate & Conflict Check`,
+              ``,
+              hasDupes
+                ? `> ⚠️ **Duplicates detected** — please resolve before merging.\n\n\`\`\`\n${dupeReport}\n\`\`\``
+                : `> ✅ No duplicates detected against \`master\`.`,
+              ``,
+              `---`,
+              ``,
+              `## Reviewer Checklist`,
+              ``,
+              `- [ ] Review files in \`${{ steps.names.outputs.target_dir }}/\``,
+              `- [ ] Remove or merge any duplicates flagged above`,
+              `- [ ] Check license compatibility`,
+              `- [ ] Delete \`IMPORT_NOTES.md\` from target dir when done`,
+              `- [ ] Approve and merge`,
+            ].join('\n');
+
+            const pr = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `integration: import ${{ steps.names.outputs.repo_name }}`,
+              head: '${{ steps.names.outputs.branch }}',
+              base: 'master',
+              body,
+              draft: true,
+            });
+
+            console.log(`Draft PR created: ${pr.data.html_url}`);
