@@ -1,0 +1,38 @@
+# CODEOWNERS — Visionary Termux
+#
+# Each line maps a path pattern to one or more GitHub usernames or teams.
+# The last matching pattern takes precedence.
+# Format: <pattern> @<user-or-team> [@<user-or-team> ...]
+#
+# Tip: Add your GitHub username(s) below. Anyone listed here will be
+# automatically requested as a reviewer when a PR touches those paths.
+
+# Global fallback — catches everything not matched below
+*                           @Unexusi
+
+# Android application core
+/app/                       @Unexusi
+/shell-loader/              @Unexusi
+
+# Build system & Gradle
+*.gradle                    @Unexusi
+gradlew                     @Unexusi
+gradle.properties           @Unexusi
+/gradle/                    @Unexusi
+
+# GitHub Actions & automation (extra scrutiny)
+/.github/workflows/         @Unexusi
+/.github/scripts/           @Unexusi
+
+# Integration branches land here — require explicit owner review
+# Pattern: integration/* PRs always need @Unexusi sign-off
+/integration/               @Unexusi
+
+# Scripts shipped into Termux environment
+build_termux_package        @Unexusi
+termux-x11                  @Unexusi
+termux-x11-preference       @Unexusi
+
+# Documentation
+*.md                        @Unexusi
+SECURITY.md                 @Unexusi
