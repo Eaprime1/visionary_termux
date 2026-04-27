@@ -22,10 +22,10 @@ if command -v jq > /dev/null 2>&1; then
   plugged=$(echo "$battery_json" | jq -r '.plugged')
   temp=$(echo "$battery_json"    | jq -r '.temperature')
 else
-  level=$(echo "$battery_json"   | grep -o '"percentage":[0-9]*' | grep -o '[0-9]*')
-  status=$(echo "$battery_json"  | grep -o '"status":"[^"]*"'    | cut -d'"' -f4)
-  plugged=$(echo "$battery_json" | grep -o '"plugged":"[^"]*"'   | cut -d'"' -f4)
-  temp=$(echo "$battery_json"    | grep -o '"temperature":[0-9.]*' | cut -d: -f2)
+  level=$(echo "$battery_json"   | sed -n 's/.*"percentage":[[:space:]]*\([0-9]*\).*/\1/p')
+  status=$(echo "$battery_json"  | sed -n 's/.*"status":[[:space:]]*"\([^"]*\)".*/\1/p')
+  plugged=$(echo "$battery_json" | sed -n 's/.*"plugged":[[:space:]]*"\([^"]*\)".*/\1/p')
+  temp=$(echo "$battery_json"    | sed -n 's/.*"temperature":[[:space:]]*\([0-9.]*\).*/\1/p')
 fi
 
 # Build notification content
