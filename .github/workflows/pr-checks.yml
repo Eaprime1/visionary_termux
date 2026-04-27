@@ -134,6 +134,7 @@ jobs:
   # 4. Integration Branch Hygiene — remind about naming conventions
   # ------------------------------------------------------------------
   branch-hygiene:
+
     name: Branch Naming Check
     runs-on: ubuntu-latest
     steps:
@@ -151,4 +152,33 @@ jobs:
             echo "WARN: Branch name '$BRANCH' doesn't follow a recognised convention."
             echo "Recommended prefixes:  integration/<repo-name>  |  feat/<topic>  |  fix/<topic>"
             echo "This is a warning only — PR is not blocked."
+          fi
+
+  # ------------------------------------------------------------------
+  # 5. Integration Tracker — warn if INTEGRATIONS.md is stale
+  # ------------------------------------------------------------------
+  integration-tracker:
+    name: Integration Tracker Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check INTEGRATIONS.md is updated on integration branches
+        run: |
+          BRANCH="${{ github.head_ref }}"
+
+          if echo "$BRANCH" | grep -qE '^integration/'; then
+            REPO_NAME="${BRANCH#integration/}"
+            echo "Integration branch detected: $REPO_NAME"
+
+            if git diff --name-only origin/master...HEAD | grep -q "^INTEGRATIONS.md$"; then
+              echo "PASS: INTEGRATIONS.md was updated in this PR."
+            else
+              echo "WARN: Integration branch '$BRANCH' did not update INTEGRATIONS.md."
+              echo "Please update the status row for '$REPO_NAME' before marking this PR ready for review."
+            fi
+          else
+            echo "Non-integration branch — skipping tracker check."
           fi

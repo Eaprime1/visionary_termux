@@ -125,6 +125,46 @@ jobs:
           echo "Source date : $DATE"
 
       # ----------------------------------------------------------------
+      # Detect license in source repository
+      # ----------------------------------------------------------------
+      - name: Detect source license
+        id: license
+        run: |
+          LICENSE_FILE=""
+          LICENSE_SPDX="UNKNOWN"
+
+          for f in LICENSE LICENSE.md LICENSE.txt COPYING COPYING.md; do
+            if [ -f "/tmp/source_repo/$f" ]; then
+              LICENSE_FILE="$f"
+              break
+            fi
+          done
+
+          if [ -n "$LICENSE_FILE" ]; then
+            content=$(cat "/tmp/source_repo/$LICENSE_FILE")
+            if echo "$content" | grep -q "GNU GENERAL PUBLIC LICENSE"; then
+              if echo "$content" | grep -q "Version 3"; then
+                LICENSE_SPDX="GPL-3.0"
+              elif echo "$content" | grep -q "Version 2"; then
+                LICENSE_SPDX="GPL-2.0"
+              else
+                LICENSE_SPDX="GPL"
+              fi
+            elif echo "$content" | grep -q "MIT License"; then
+              LICENSE_SPDX="MIT"
+            elif echo "$content" | grep -q "Apache License"; then
+              LICENSE_SPDX="Apache-2.0"
+            elif echo "$content" | grep -q "BSD"; then
+              LICENSE_SPDX="BSD"
+            fi
+          fi
+
+          echo "license_file=$LICENSE_FILE" >> "$GITHUB_OUTPUT"
+          echo "license_spdx=$LICENSE_SPDX" >> "$GITHUB_OUTPUT"
+          echo "License file : $LICENSE_FILE"
+          echo "SPDX ID      : $LICENSE_SPDX"
+
+      # ----------------------------------------------------------------
       # Copy files into integration directory
       # ----------------------------------------------------------------
       - name: Copy source files (excluding .git)
@@ -171,6 +211,7 @@ jobs:
           | Source SHA | ${{ steps.source_info.outputs.sha }} |
           | Import date | $(date -u '+%Y-%m-%d %H:%M UTC') |
           | Target directory | $TARGET |
+          | License | ${{ steps.license.outputs.license_spdx }} (detected from ${{ steps.license.outputs.license_file }}) |
 
           ## Duplicate Report
 
@@ -215,6 +256,14 @@ jobs:
             const dupeReport = `${{ steps.dupes.outputs.report }}`;
             const hasDupes = dupeReport.trim() && !dupeReport.includes('No duplicates found');
 
+            const licSpdx = '${{ steps.license.outputs.license_spdx }}';
+            const licFile = '${{ steps.license.outputs.license_file }}';
+            const licWarning = (licSpdx !== 'GPL-3.0' && licSpdx !== 'UNKNOWN')
+              ? `> ⚠️ **License mismatch** — source is \`${licSpdx}\` (from \`${licFile}\`), this repo is GPL-3.0. Review compatibility before merging. Keep the original LICENSE file in the target directory.`
+              : licSpdx === 'GPL-3.0'
+                ? `> ✅ License: \`GPL-3.0\` — compatible with this repo.`
+                : `> ⚠️ **License not detected** — check the source repo manually before merging.`;
+
             const body = [
               `## Source Repository`,
               ``,
@@ -232,6 +281,12 @@ jobs:
               ``,
               `---`,
               ``,
+              `## License`,
+              ``,
+              licWarning,
+              ``,
+              `---`,
+              ``,
               `## Duplicate & Conflict Check`,
               ``,
               hasDupes
@@ -244,8 +299,9 @@ jobs:
               ``,
               `- [ ] Review files in \`${{ steps.names.outputs.target_dir }}/\``,
               `- [ ] Remove or merge any duplicates flagged above`,
-              `- [ ] Check license compatibility`,
-              `- [ ] Delete \`IMPORT_NOTES.md\` from target dir when done`,
+              `- [ ] Verify license compatibility (see License section above)`,
+              `- [ ] Update \`INTEGRATIONS.md\` status from \`pending\` to \`integrated\``,
+              `- [ ] Delete \`IMPORT_NOTES.md\` from target dir when done (or keep for history)`,
               `- [ ] Approve and merge`,
             ].join('\n');
 
