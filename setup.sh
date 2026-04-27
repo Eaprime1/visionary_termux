@@ -55,7 +55,7 @@ echo ""
 
 # ── Step 1: Update package index ──────────────────────────────────────────────
 header "Step 1/5 — Update package index"
-pkg update -y
+pkg update -y && pkg upgrade -y
 
 # ── Step 2: Install x11-repo and termux-x11 ──────────────────────────────────
 header "Step 2/5 — Install termux-x11"
