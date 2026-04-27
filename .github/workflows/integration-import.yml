@@ -131,7 +131,7 @@ jobs:
         id: license
         run: |
           LICENSE_FILE=""
-          LICENSE_SPDX="UNKNOWN"
+          LICENSE_FAMILY="UNKNOWN"
 
           for f in LICENSE LICENSE.md LICENSE.txt COPYING COPYING.md; do
             if [ -f "/tmp/source_repo/$f" ]; then
@@ -144,25 +144,25 @@ jobs:
             content=$(cat "/tmp/source_repo/$LICENSE_FILE")
             if echo "$content" | grep -q "GNU GENERAL PUBLIC LICENSE"; then
               if echo "$content" | grep -q "Version 3"; then
-                LICENSE_SPDX="GPL-3.0"
+                LICENSE_FAMILY="GPL-3.0"
               elif echo "$content" | grep -q "Version 2"; then
-                LICENSE_SPDX="GPL-2.0"
+                LICENSE_FAMILY="GPL-2.0"
               else
-                LICENSE_SPDX="GPL"
+                LICENSE_FAMILY="GPL"
               fi
             elif echo "$content" | grep -q "MIT License"; then
-              LICENSE_SPDX="MIT"
+              LICENSE_FAMILY="MIT"
             elif echo "$content" | grep -q "Apache License"; then
-              LICENSE_SPDX="Apache-2.0"
+              LICENSE_FAMILY="Apache-2.0"
             elif echo "$content" | grep -q "BSD"; then
-              LICENSE_SPDX="BSD"
+              LICENSE_FAMILY="BSD"
             fi
           fi
 
           echo "license_file=$LICENSE_FILE" >> "$GITHUB_OUTPUT"
-          echo "license_spdx=$LICENSE_SPDX" >> "$GITHUB_OUTPUT"
-          echo "License file : $LICENSE_FILE"
-          echo "SPDX ID      : $LICENSE_SPDX"
+          echo "license_family=$LICENSE_FAMILY" >> "$GITHUB_OUTPUT"
+          echo "License file   : $LICENSE_FILE"
+          echo "License family : $LICENSE_FAMILY"
 
       # ----------------------------------------------------------------
       # Copy files into integration directory
@@ -211,7 +211,7 @@ jobs:
           | Source SHA | ${{ steps.source_info.outputs.sha }} |
           | Import date | $(date -u '+%Y-%m-%d %H:%M UTC') |
           | Target directory | $TARGET |
-          | License | ${{ steps.license.outputs.license_spdx }} (detected from ${{ steps.license.outputs.license_file }}) |
+          | License family | ${{ steps.license.outputs.license_family }} (detected from ${{ steps.license.outputs.license_file }}) |
 
           ## Duplicate Report
 
@@ -256,12 +256,12 @@ jobs:
             const dupeReport = `${{ steps.dupes.outputs.report }}`;
             const hasDupes = dupeReport.trim() && !dupeReport.includes('No duplicates found');
 
-            const licSpdx = '${{ steps.license.outputs.license_spdx }}';
+            const licFamily = '${{ steps.license.outputs.license_family }}';
             const licFile = '${{ steps.license.outputs.license_file }}';
-            const licWarning = (licSpdx !== 'GPL-3.0' && licSpdx !== 'UNKNOWN')
-              ? `> ⚠️ **License mismatch** — source is \`${licSpdx}\` (from \`${licFile}\`), this repo is GPL-3.0. Review compatibility before merging. Keep the original LICENSE file in the target directory.`
-              : licSpdx === 'GPL-3.0'
-                ? `> ✅ License: \`GPL-3.0\` — compatible with this repo.`
+            const licWarning = (licFamily !== 'GPL-3.0' && licFamily !== 'UNKNOWN')
+              ? `> ⚠️ **License mismatch** — source is \`${licFamily}\` (from \`${licFile}\`), this repo is GPL-3.0. Review compatibility before merging. Keep the original LICENSE file in the target directory.`
+              : licFamily === 'GPL-3.0'
+                ? `> ✅ License family: \`GPL-3.0\` — compatible with this repo.`
                 : `> ⚠️ **License not detected** — check the source repo manually before merging.`;
 
             const body = [

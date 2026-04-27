@@ -15,7 +15,7 @@ set -euo pipefail
 # Read battery info as JSON
 battery_json=$(termux-battery-status)
 
-# Parse fields (jq preferred; fall back to grep+sed if not installed)
+# Parse fields (jq preferred; fall back to sed if not installed)
 if command -v jq > /dev/null 2>&1; then
   level=$(echo "$battery_json"   | jq -r '.percentage')
   status=$(echo "$battery_json"  | jq -r '.status')

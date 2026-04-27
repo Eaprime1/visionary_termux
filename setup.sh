@@ -34,7 +34,16 @@ DISTRO="ubuntu"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --minimal)       MINIMAL=true; shift ;;
-    --with-distro)   DISTRO="$2"; shift 2 ;;
+    --with-distro)
+      if [[ $# -lt 2 || -z "$2" ]]; then
+        die "--with-distro requires a value (e.g. ubuntu, debian, fedora). Run with --help for usage."
+      fi
+      if [[ "$2" == -* ]]; then
+        die "--with-distro value looks like a flag: '$2'. Run with --help for usage."
+      fi
+      DISTRO="$2"
+      shift 2
+      ;;
     --help|-h)
       sed -n '/^# setup.sh/,/^[^#]/{ /^[^#]/d; s/^# \{0,2\}//; p }' "$0"
       exit 0
