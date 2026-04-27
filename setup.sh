@@ -59,7 +59,7 @@ pkg update -y && pkg upgrade -y
 
 # ── Step 2: Install x11-repo and termux-x11 ──────────────────────────────────
 header "Step 2/5 — Install termux-x11"
-if pkg list-installed 2>/dev/null | grep -q "^x11-repo"; then
+if dpkg -s x11-repo >/dev/null 2>&1; then
   info "x11-repo already installed."
 else
   pkg install -y x11-repo
