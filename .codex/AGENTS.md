@@ -23,4 +23,4 @@ The generated baseline enables GitHub, Context7, Exa, Memory, Playwright, and Se
 
 - No dedicated workflow command files were generated for this repo.
 
-Use these workflow files as reusable task scaffolds when the detected repository workflows recur.
+When similar repository workflows recur, use the repo skill and Claude-facing companion skill listed above as the reusable scaffolds available in this repo.

@@ -1,10 +1,9 @@
-```markdown
 # visionary_termux Development Patterns
 
 > Auto-generated skill from repository analysis
 
 ## Overview
-This skill teaches the core development conventions and workflows used in the `visionary_termux` TypeScript codebase. It covers file naming, import/export styles, commit patterns, and testing practices, providing clear examples and actionable commands for efficient collaboration and code quality.
+This skill teaches the core development conventions and workflows used in the `visionary_termux` repository. The codebase is primarily composed of Markdown and PDF documents with some Python scripts. No TypeScript/Node.js sources or `package.json` were detected.
 
 ## Coding Conventions
 
@@ -37,7 +36,10 @@ This skill teaches the core development conventions and workflows used in the `v
 
 ## Workflows
 
-_No automated workflows detected in this repository._
+**GitHub Actions** workflows are present under `.github/workflows/`.
+- `dependency-review.yml` — dependency review checks
+- `static.yml` — static site / Pages deployment
+- `summary.yml` — summary generation workflow
 
 ## Testing Patterns
 
@@ -58,10 +60,4 @@ _No automated workflows detected in this repository._
 
 ## Commands
 
-| Command | Purpose |
-|---------|---------|
-| /test   | Run all test files matching `*.test.*` pattern |
-| /lint   | Lint the codebase for style and syntax issues (if linter configured) |
-| /build  | Build the TypeScript project (if build script configured) |
-
-```
+No build, test, or lint commands were detected in this repository (no Node/TypeScript toolchain or Python test runner configured).

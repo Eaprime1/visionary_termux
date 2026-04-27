@@ -22,7 +22,7 @@ args = ["-y", "@modelcontextprotocol/server-memory@0.2.0"]
 
 [mcp_servers.playwright]
 command = "npx"
-args = ["-y", "@playwright/mcp@0.0.24", "--extension"]
+args = ["-y", "@playwright/mcp@1.52.0", "--extension"]
 
 [mcp_servers.sequential-thinking]
 command = "npx"

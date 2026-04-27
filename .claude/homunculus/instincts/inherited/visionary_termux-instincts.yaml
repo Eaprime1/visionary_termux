@@ -269,9 +269,9 @@ source_repo: Eaprime1/visionary_termux
 
 ## Action
 
-Add workflow YAML files under .github/workflows for integration, PR checks, and releases
+Add workflow YAML files under .github/workflows following the repository's existing CI patterns
 
 ## Evidence
 
-- Pattern in architecture.configFiles: .github/workflows/integration-import.yml, pr-checks.yml, release.yml
+- Pattern in architecture.configFiles: .github/workflows/dependency-review.yml, static.yml, summary.yml
 
