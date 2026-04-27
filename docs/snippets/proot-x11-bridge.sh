@@ -17,14 +17,41 @@
 
 set -euo pipefail
 
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  bash proot-x11-bridge.sh [--distro <name>] [--de <session-command>]
+
+Options:
+  --distro <name>    proot-distro name (default: ubuntu)
+  --de <command>     Desktop environment start command (default: xfce4-session)
+EOF
+}
+
+error_usage() {
+  echo "$1" >&2
+  usage
+  exit 1
+}
+
 DISTRO="ubuntu"
 DE_CMD="xfce4-session"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --distro) DISTRO="$2"; shift 2 ;;
-    --de)     DE_CMD="$2"; shift 2 ;;
-    *) echo "Unknown option: $1" >&2; exit 1 ;;
+    --distro)
+      [[ $# -ge 2 ]] || error_usage "Missing value for --distro"
+      DISTRO="$2"
+      shift 2
+      ;;
+    --de)
+      [[ $# -ge 2 ]] || error_usage "Missing value for --de"
+      DE_CMD="$2"
+      shift 2
+      ;;
+    *)
+      error_usage "Unknown option: $1"
+      ;;
   esac
 done
 
