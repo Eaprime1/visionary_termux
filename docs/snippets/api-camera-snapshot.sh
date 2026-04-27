@@ -19,9 +19,30 @@ OUTPUT_DIR="${HOME}/storage/pictures/snapshots"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --camera)     CAMERA_ID="$2"; shift 2 ;;
-    --output-dir) OUTPUT_DIR="$2"; shift 2 ;;
-    *) echo "Unknown option: $1" >&2; exit 1 ;;
+    --camera)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        echo "Missing value for --camera" >&2
+        exit 1
+      fi
+      if ! [[ "$2" =~ ^[0-9]+$ ]]; then
+        echo "Invalid camera ID: $2" >&2
+        exit 1
+      fi
+      CAMERA_ID="$2"
+      shift 2
+      ;;
+    --output-dir)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        echo "Missing value for --output-dir" >&2
+        exit 1
+      fi
+      OUTPUT_DIR="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      exit 1
+      ;;
   esac
 done
 
