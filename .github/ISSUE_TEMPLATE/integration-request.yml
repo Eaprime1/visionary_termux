@@ -1,0 +1,89 @@
+name: "Integration Request"
+description: "Propose a Termux repository or tool for integration into Visionary Termux"
+title: "[Integration]: "
+labels: ["integration-request", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to propose a new repository or tool for integration.
+
+        Before submitting: check [INTEGRATIONS.md](../../INTEGRATIONS.md) — the repo may already have been evaluated.
+        Read [docs/VISION.md](../../docs/VISION.md) to understand what we look for.
+
+  - type: input
+    id: repo_url
+    attributes:
+      label: Repository URL
+      description: Full URL to the GitHub (or other public) repository
+      placeholder: "https://github.com/termux/example-repo"
+    validations:
+      required: true
+
+  - type: input
+    id: license
+    attributes:
+      label: License
+      description: SPDX identifier or license name (e.g. GPL-3.0, MIT, Apache-2.0)
+      placeholder: "GPL-3.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: content_type
+    attributes:
+      label: Content type
+      description: What kind of content does this repo primarily contain?
+      options:
+        - scripts / shell tools
+        - documentation / guides
+        - configuration / dotfiles
+        - Android app + companion scripts
+        - mixed
+    validations:
+      required: true
+
+  - type: textarea
+    id: unique_value
+    attributes:
+      label: What unique value does this add?
+      description: |
+        Explain specifically what this repo provides that isn't already in Visionary Termux
+        or easily covered by a one-line `pkg install`. Be concrete.
+      placeholder: "This adds X, which lets users do Y — something that currently requires manually doing Z."
+    validations:
+      required: true
+
+  - type: textarea
+    id: how_it_fits
+    attributes:
+      label: How does it fit the architecture?
+      description: |
+        Describe how this integrates with existing components (termux-x11, proot-distro,
+        termux-api, termux-widget) or fills a gap in the current collection.
+    validations:
+      required: false
+
+  - type: textarea
+    id: what_to_skip
+    attributes:
+      label: What should we NOT import from it?
+      description: |
+        If the repo contains parts that are redundant, too large, or out of scope,
+        note them here. Curated imports beat wholesale copies.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: I checked INTEGRATIONS.md and this repo is not already tracked
+          required: true
+        - label: The repository is publicly accessible
+          required: true
+        - label: The license is compatible with GPL-3.0, or I have noted the conflict above
+          required: true
+        - label: I have read docs/VISION.md and this repo fits the project scope
+          required: true

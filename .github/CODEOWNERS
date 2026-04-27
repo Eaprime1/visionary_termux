@@ -25,8 +25,8 @@ gradle.properties           @Unexusi
 /.github/scripts/           @Unexusi
 
 # Integration branches land here — require explicit owner review
-# Pattern: integration/* PRs always need @Unexusi sign-off
-/integration/               @Unexusi
+# Pattern covers both integration/ and integrations/ (plural)
+/integrat*/                 @Unexusi
 
 # Scripts shipped into Termux environment
 build_termux_package        @Unexusi
